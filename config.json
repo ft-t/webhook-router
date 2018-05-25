@@ -1,0 +1,11 @@
+{
+  "port": 8080,
+  "ui_port": 8081,
+  "logging": {
+    "min_level": "Debug"
+  },
+  "elastic": {
+    "url": "http://localhost:9200",
+    "index": "router-data"
+  }
+}
