@@ -1,11 +1,12 @@
 package configuration
 
 import (
-	"github.com/micro/go-config/source/file"
 	"fmt"
+	"os"
+
 	"github.com/micro/go-config"
 	"github.com/micro/go-config/source"
-	"os"
+	"github.com/micro/go-config/source/file"
 )
 
 type ElasticConfiguration struct {

@@ -1,10 +1,12 @@
 package router
 
 import (
-	"github.com/kataras/iris"
 	"fmt"
+
 	"webhook-router/configuration"
-	)
+
+	"github.com/kataras/iris"
+)
 
 func InitRouter(configuration *configuration.GlobalConfiguration) {
 	app := iris.New()

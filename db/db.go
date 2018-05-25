@@ -1,13 +1,20 @@
 package db
 
 import (
-	"webhook-router/configuration"
-	"github.com/olivere/elastic"
+	"context"
+	"reflect"
 	"time"
+
+	"webhook-router/configuration"
+
+	"github.com/olivere/elastic"
 )
 
 var elasticConfiguration configuration.ElasticConfiguration
 var elasticClient *elastic.Client
+
+type PathRule struct {
+}
 
 func getClient() *elastic.Client {
 	if elasticClient != nil {
@@ -31,9 +38,57 @@ func InitDb(configuration configuration.ElasticConfiguration) {
 	elasticConfiguration = configuration
 }
 
-func GetRulesByPath(path string) {
+func GetRulesByPath(path string) []PathRule {
+	exists, err := elasticClient.IndexExists(elasticConfiguration.Index).Do(context.Background())
 
+	if err != nil {
+		//TODO Handle
+		return nil
+	}
+
+	if !exists {
+		return nil
+	}
+
+	var result *elastic.SearchResult
+	result, err = elasticClient.Search().Index(elasticConfiguration.Index).Type(elasticConfiguration.DocType).Query(elastic.NewTermQuery("path", path)).Do(context.Background())
+
+	if err != nil {
+		//TODO Handle
+		return nil
+	}
+
+	var rules []PathRule
+	for _, rule := range result.Each(reflect.TypeOf((*PathRule)(nil))) {
+		rules = append(rules, rule.(PathRule))
+	}
+
+	return rules;
 }
-func GetAllRules() {
+func GetAllRules() []PathRule {
+	exists, err := elasticClient.IndexExists(elasticConfiguration.Index).Do(context.Background())
 
+	if err != nil {
+		//TODO Handle
+		return nil
+	}
+
+	if !exists {
+		return nil
+	}
+
+	var result *elastic.SearchResult
+	result, err = elasticClient.Search().Index(elasticConfiguration.Index).Type(elasticConfiguration.DocType).Query(elastic.NewMatchAllQuery()).Do(context.Background())
+
+	if err != nil {
+		//TODO Handle
+		return nil
+	}
+
+	var rules []PathRule
+	for _, rule := range result.Each(reflect.TypeOf((*PathRule)(nil))) {
+		rules = append(rules, rule.(PathRule))
+	}
+
+	return rules;
 }
