@@ -5,7 +5,8 @@
     "min_level": "Debug"
   },
   "elastic": {
-    "url": "http://localhost:9200",
-    "index": "router-data"
+    "url": "http://10.10.11.240:9200",
+    "index": "router-data",
+    "doc_type": "router-rule"
   }
 }

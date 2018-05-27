@@ -2,19 +2,18 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 	"reflect"
 	"time"
 
 	"webhook-router/configuration"
+	"webhook-router/structs"
 
 	"github.com/olivere/elastic"
 )
 
-var elasticConfiguration configuration.ElasticConfiguration
+var config *configuration.GlobalConfiguration
 var elasticClient *elastic.Client
-
-type PathRule struct {
-}
 
 func getClient() *elastic.Client {
 	if elasticClient != nil {
@@ -22,7 +21,7 @@ func getClient() *elastic.Client {
 	}
 
 	client, err := elastic.NewClient(
-		elastic.SetURL(elasticConfiguration.Url),
+		elastic.SetURL(config.ElasticConfiguration.Url),
 		elastic.SetHealthcheckInterval(10*time.Second),
 	)
 
@@ -34,12 +33,12 @@ func getClient() *elastic.Client {
 	return elasticClient
 }
 
-func InitDb(configuration configuration.ElasticConfiguration) {
-	elasticConfiguration = configuration
+func InitDb(configuration *configuration.GlobalConfiguration) {
+	config = configuration
 }
 
-func GetRulesByPath(path string) []PathRule {
-	exists, err := elasticClient.IndexExists(elasticConfiguration.Index).Do(context.Background())
+func GetRulesByPath(path string) []structs.PathRule {
+	exists, err := getClient().IndexExists(config.ElasticConfiguration.Index).Do(context.Background())
 
 	if err != nil {
 		//TODO Handle
@@ -51,22 +50,31 @@ func GetRulesByPath(path string) []PathRule {
 	}
 
 	var result *elastic.SearchResult
-	result, err = elasticClient.Search().Index(elasticConfiguration.Index).Type(elasticConfiguration.DocType).Query(elastic.NewTermQuery("path", path)).Do(context.Background())
+	result, err = getClient().Search().Index(config.ElasticConfiguration.Index).Type(config.ElasticConfiguration.DocType).Query(elastic.NewTermQuery("path", path)).Do(context.Background())
 
 	if err != nil {
 		//TODO Handle
 		return nil
 	}
 
-	var rules []PathRule
-	for _, rule := range result.Each(reflect.TypeOf((*PathRule)(nil))) {
-		rules = append(rules, rule.(PathRule))
+	var rules []structs.PathRule
+	for _, hit := range result.Hits.Hits {
+		var rule structs.PathRule
+		err := json.Unmarshal(*hit.Source, &rule)
+
+		if err != nil {
+			// TODO
+			continue
+		}
+
+		rules = append(rules, rule)
 	}
 
 	return rules;
 }
-func GetAllRules() []PathRule {
-	exists, err := elasticClient.IndexExists(elasticConfiguration.Index).Do(context.Background())
+
+func GetAllRules() []structs.PathRule {
+	exists, err := getClient().IndexExists(config.ElasticConfiguration.Index).Do(context.Background())
 
 	if err != nil {
 		//TODO Handle
@@ -78,16 +86,16 @@ func GetAllRules() []PathRule {
 	}
 
 	var result *elastic.SearchResult
-	result, err = elasticClient.Search().Index(elasticConfiguration.Index).Type(elasticConfiguration.DocType).Query(elastic.NewMatchAllQuery()).Do(context.Background())
+	result, err = getClient().Search().Index(config.ElasticConfiguration.Index).Type(config.ElasticConfiguration.DocType).Query(elastic.NewMatchAllQuery()).Do(context.Background())
 
 	if err != nil {
 		//TODO Handle
 		return nil
 	}
 
-	var rules []PathRule
-	for _, rule := range result.Each(reflect.TypeOf((*PathRule)(nil))) {
-		rules = append(rules, rule.(PathRule))
+	var rules []structs.PathRule
+	for _, rule := range result.Each(reflect.TypeOf((*structs.PathRule)(nil))) {
+		rules = append(rules, rule.(structs.PathRule))
 	}
 
 	return rules;

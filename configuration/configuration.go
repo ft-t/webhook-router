@@ -1,7 +1,6 @@
 package configuration
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/micro/go-config"
@@ -18,10 +17,10 @@ type LoggingConfiguration struct {
 	MinLevel string `json:"min_level"`
 }
 type GlobalConfiguration struct {
-	ElasticConfiguration `json:"elastic"`
-	LoggingConfiguration `json:"logging"`
-	Port                 int `json:"port"`
-	UiPort               int `json:"ui_port"`
+	ElasticConfiguration ElasticConfiguration `json:"elastic"`
+	LoggingConfiguration LoggingConfiguration `json:"logging"`
+	Port                 int                  `json:"port"`
+	UiPort               int                  `json:"ui_port"`
 }
 
 var configuration *GlobalConfiguration
@@ -47,9 +46,6 @@ func GetConfiguration() GlobalConfiguration {
 	conf.Load(file.NewSource(
 		sources...
 	))
-
-	tmp := conf.Get()
-	fmt.Println(tmp)
 
 	conf.Get().Scan(configuration)
 
