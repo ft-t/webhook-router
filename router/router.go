@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strings"
 	"time"
 
 	"webhook-router/configuration"
@@ -24,7 +25,23 @@ func InitRouter(configuration *configuration.GlobalConfiguration) {
 }
 
 func handler(ctx iris.Context) {
-	rules := db.GetRulesByPath(ctx.Path())
+	path := ctx.Path()
+	rules := db.GetRulesByPath(path)
+
+	for len(rules) == 0 && len(path) > 0 {
+		path = path[:strings.LastIndex(path, "/")]
+
+		if len(path) == 0 {
+			break
+		}
+
+		rules = db.GetRulesByPath(path)
+	}
+
+	if len(rules) == 0 {
+		ctx.StatusCode(iris.StatusNotFound)
+		return
+	}
 
 	success := false
 	client := netutil.Client(time.Duration(20 * time.Second))
@@ -37,7 +54,13 @@ func handler(ctx iris.Context) {
 		for _, endpoint := range rule.Endpoints {
 			request := http.Request{}
 
-			request.URL, _ = url.Parse(endpoint.Url)
+			requestUrl := endpoint.Url
+
+			if rule.Path != ctx.Path() {
+				requestUrl += strings.Replace(ctx.Path(), rule.Path, "", -1)
+			}
+
+			request.URL, _ = url.Parse(requestUrl)
 			request.Body = ctx.Request().Body
 			request.ContentLength = ctx.Request().ContentLength
 			request.Header = ctx.Request().Header
